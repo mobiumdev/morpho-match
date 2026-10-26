@@ -1,0 +1,79 @@
+{
+  "description": "Morpho Match on seed 42, whose deal is pinned by GameTest: emerald 1/5, owl 2/13, morpho 3/11, monarch 4/8, swallowtail 6/9, atlas 7/14, peacock 10/12, glasswing 15/16 (card numbers from 1, card_N ids from 0). The sort level gets swallowtail 9 cm, atlas 25, owl 14, glasswing 6. Each test starts from a reset game.",
+  "app": "dev.mobium.match",
+  "beforeEach": [
+    {"open_url": "morphomatch://reset"},
+    {"wait_for": {"target": "testid=newGame", "timeout_ms": 3000}}
+  ],
+  "tests": [
+    {"name": "a card turned over says what it is", "steps": [
+      {"open_url": "morphomatch://play?seed=42"},
+      {"wait_for": {"target": "label=\"Card 3, face down\""}},
+      {"tap": "testid=card_2"},
+      {"wait_for": {"target": "label=\"Card 3, Blue Morpho\""}},
+      {"wait_for": {"target": "testid=moves", "condition": "text", "text": "Moves: 0", "exact": true}}
+    ]},
+    {"name": "a pair stays up and counts one move", "steps": [
+      {"open_url": "morphomatch://play?seed=42"},
+      {"tap": "testid=card_3"}, {"tap": "testid=card_7"},
+      {"wait_for": {"target": "label=\"Card 8, Monarch, matched\""}},
+      {"wait_for": {"target": "testid=moves", "condition": "text", "text": "Moves: 1", "exact": true}},
+      {"wait_for": {"target": "testid=pairs", "condition": "text", "text": "Pairs: 1 of 8", "exact": true}}
+    ]},
+    {"name": "a mismatch turns back face down", "steps": [
+      {"open_url": "morphomatch://play?seed=42"},
+      {"tap": "testid=card_0"}, {"tap": "testid=card_1"},
+      {"wait_for": {"target": "label=\"Card 2, face down\"", "timeout_ms": 3000}},
+      {"wait_for": {"target": "label=\"Card 1, face down\""}},
+      {"wait_for": {"target": "testid=moves", "condition": "text", "text": "Moves: 1", "exact": true}}
+    ]},
+    {"name": "every pair in eight moves", "steps": [
+      {"open_url": "morphomatch://play?seed=42"},
+      {"tap": "testid=card_0"}, {"tap": "testid=card_4"},
+      {"tap": "testid=card_1"}, {"tap": "testid=card_12"},
+      {"tap": "testid=card_2"}, {"tap": "testid=card_10"},
+      {"tap": "testid=card_3"}, {"tap": "testid=card_7"},
+      {"tap": "testid=card_5"}, {"tap": "testid=card_8"},
+      {"tap": "testid=card_6"}, {"tap": "testid=card_13"},
+      {"tap": "testid=card_9"}, {"tap": "testid=card_11"},
+      {"tap": "testid=card_14"}, {"tap": "testid=card_15"},
+      {"wait_for": {"target": "testid=status", "condition": "text", "text": "You found all 8 pairs in 8 moves", "exact": true}, "description": "score-double makes it 16"},
+      {"wait_for": {"target": "testid=pairs", "condition": "text", "text": "Pairs: 8 of 8", "exact": true}}
+    ]},
+    {"name": "the best score is kept", "steps": [
+      {"open_url": "morphomatch://play?seed=42"},
+      {"tap": "testid=card_0"}, {"tap": "testid=card_4"},
+      {"tap": "testid=card_1"}, {"tap": "testid=card_12"},
+      {"tap": "testid=card_2"}, {"tap": "testid=card_10"},
+      {"tap": "testid=card_3"}, {"tap": "testid=card_7"},
+      {"tap": "testid=card_5"}, {"tap": "testid=card_8"},
+      {"tap": "testid=card_6"}, {"tap": "testid=card_13"},
+      {"tap": "testid=card_9"}, {"tap": "testid=card_11"},
+      {"tap": "testid=card_14"}, {"tap": "testid=card_15"},
+      {"wait_for": "testid=status"},
+      {"tap": "testid=backBtn"},
+      {"wait_for": {"target": "testid=best", "condition": "text", "text": "Best: 8 moves", "exact": true}, "description": "best-lost keeps No best yet"}
+    ]},
+    {"name": "sorted smallest to largest by dragging", "steps": [
+      {"open_url": "morphomatch://sort?seed=42"},
+      {"wait_for": {"target": "testid=sortStatus", "condition": "text", "text": "Smallest wingspan on the left", "exact": true}},
+      {"drag": {"from": "testid=sort_glasswing", "to": "testid=slot_0"}},
+      {"wait_for": "label=\"Slot 1, Glasswing\""},
+      {"drag": {"from": "testid=sort_swallowtail", "to": "testid=slot_1"}},
+      {"wait_for": "label=\"Slot 2, Swallowtail\""},
+      {"drag": {"from": "testid=sort_owl", "to": "testid=slot_2"}},
+      {"wait_for": "label=\"Slot 3, Owl\""},
+      {"drag": {"from": "testid=sort_atlas", "to": "testid=slot_3"}},
+      {"wait_for": {"target": "testid=sortStatus", "condition": "text", "text": "Sorted!", "exact": true}}
+    ]},
+    {"name": "a wrong order is not sorted", "steps": [
+      {"open_url": "morphomatch://sort?seed=42"},
+      {"drag": {"from": "testid=sort_swallowtail", "to": "testid=slot_0"}},
+      {"drag": {"from": "testid=sort_owl", "to": "testid=slot_1"}},
+      {"drag": {"from": "testid=sort_atlas", "to": "testid=slot_2"}},
+      {"drag": {"from": "testid=sort_glasswing", "to": "testid=slot_3"}},
+      {"wait_for": "label=\"Slot 4, Glasswing\""},
+      {"wait_for": {"target": "testid=sortStatus", "condition": "text", "text": "Smallest wingspan on the left", "exact": true}, "description": "the sort-three bug calls this sorted"}
+    ]}
+  ]
+}

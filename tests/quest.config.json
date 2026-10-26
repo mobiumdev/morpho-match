@@ -1,0 +1,6 @@
+{
+  "testDir": ".",
+  "projects": [
+    {"name": "quest", "device": "${MOBIUM_QUEST_DEVICE}"}
+  ]
+}
