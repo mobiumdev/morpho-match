@@ -7,6 +7,7 @@
 //	GET  /state?player=A          the game as A is told it
 //	POST /flip?player=A&card=3    a flip; 409 with the reason when refused
 //	POST /reset?seed=42           a new board, A to play
+//	POST /reset?seed=42&hide=3s   the same, a mismatch held up for 3s (0.8s by default)
 //	POST /bugs?on=a,b&off=all     the deliberate bugs
 package main
 
@@ -17,6 +18,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -68,7 +70,14 @@ func handler(d *Duo) http.Handler {
 			refuse(w, http.StatusBadRequest, "seed is a number")
 			return
 		}
-		d.Reset(seed)
+		var hide time.Duration
+		if h := r.URL.Query().Get("hide"); h != "" {
+			if hide, err = time.ParseDuration(h); err != nil || hide <= 0 || hide > time.Minute {
+				refuse(w, http.StatusBadRequest, "hide is a duration up to a minute, such as 3s")
+				return
+			}
+		}
+		d.Reset(seed, hide)
 		reply(w, http.StatusOK, d.ViewFor("A"))
 	})
 	mux.HandleFunc("POST /bugs", func(w http.ResponseWriter, r *http.Request) {

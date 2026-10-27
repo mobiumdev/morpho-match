@@ -12,9 +12,10 @@ var species = []string{"morpho", "monarch", "swallowtail", "glasswing", "owl", "
 
 // bugIDs are the deliberate bugs the duo can be switched into.
 var bugIDs = map[string]string{
-	"out-of-turn": "a flip is accepted from the player whose turn it is not",
-	"turn-stuck":  "a mismatch does not hand the turn over",
-	"score-swap":  "player B is sent the two scores swapped",
+	"out-of-turn":      "a flip is accepted from the player whose turn it is not",
+	"turn-stuck":       "a mismatch does not hand the turn over",
+	"score-swap":       "player B is sent the two scores swapped",
+	"match-hands-over": "a match hands the turn over instead of keeping it",
 }
 
 // Card is one card as a player is told it: its species only while up or matched.
@@ -51,18 +52,28 @@ type Duo struct {
 	after     func(time.Duration, func())
 }
 
+// defaultHide is how long a mismatch stays up in a game people play.
+const defaultHide = 800 * time.Millisecond
+
 func NewDuo(seed int64) *Duo {
-	d := &Duo{bugs: map[string]bool{}, hideAfter: 800 * time.Millisecond, after: func(t time.Duration, f func()) {
+	d := &Duo{bugs: map[string]bool{}, after: func(t time.Duration, f func()) {
 		time.AfterFunc(t, f)
 	}}
-	d.Reset(seed)
+	d.Reset(seed, 0)
 	return d
 }
 
-// Reset deals a new board from seed, A to play.
-func (d *Duo) Reset(seed int64) {
+// Reset deals a new board from seed, A to play. A mismatch stays up for
+// hide, or the default when hide is 0: a test that reads two screens while
+// the pair is up asks for longer, and a game reset without asking gets the
+// default back.
+func (d *Duo) Reset(seed int64, hide time.Duration) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if hide <= 0 {
+		hide = defaultHide
+	}
+	d.hideAfter = hide
 	deck := append(append([]string{}, species...), species...)
 	r := rand.New(rand.NewSource(seed))
 	r.Shuffle(len(deck), func(i, j int) { deck[i], deck[j] = deck[j], deck[i] })
@@ -79,6 +90,8 @@ var (
 	errNoCard      = errors.New("no such card")
 	errNoPlayer    = errors.New("the players are A and B")
 )
+
+var other = map[string]string{"A": "B", "B": "A"}
 
 // Flip turns card i over for player p.
 func (d *Duo) Flip(p string, i int) error {
@@ -107,6 +120,9 @@ func (d *Duo) Flip(p string, i int) error {
 		d.matched[a], d.matched[b] = p, p
 		d.scores[p]++
 		d.up = nil
+		if d.bugs["match-hands-over"] {
+			d.turn = other[d.turn]
+		}
 		return nil // a match keeps the turn
 	}
 	v := d.version
@@ -124,7 +140,7 @@ func (d *Duo) settle(v int) {
 	}
 	d.up = nil
 	if !d.bugs["turn-stuck"] {
-		d.turn = map[string]string{"A": "B", "B": "A"}[d.turn]
+		d.turn = other[d.turn]
 	}
 	d.version++
 }

@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -116,6 +118,14 @@ func TestEachBugIsCaught(t *testing.T) {
 		t.Errorf("score-swap: A sees %v, B sees %v", va.Scores, vb.Scores)
 	}
 
+	d, _ = newTestDuo(t, "match-hands-over")
+	a, b = pairOf(d, "monarch")
+	_ = d.Flip("A", a)
+	_ = d.Flip("A", b)
+	if v := d.ViewFor("A"); v.Turn != "B" {
+		t.Errorf("match-hands-over should hand the turn to B, got %s", v.Turn)
+	}
+
 	if err := d.SetBugs([]string{"no-such"}, nil); err == nil {
 		t.Error("an unknown bug was accepted")
 	}
@@ -126,11 +136,38 @@ func TestAStaleMismatchDoesNotHideANewGame(t *testing.T) {
 	a, b := mismatch(d)
 	_ = d.Flip("A", a)
 	_ = d.Flip("A", b)
-	d.Reset(7)
+	d.Reset(7, 0)
 	c, _ := pairOf(d, "owl")
 	_ = d.Flip("A", c)
 	settle()
 	if v := d.ViewFor("A"); v.Turn != "A" || v.Cards[c].State != "up" {
 		t.Errorf("the old game's timer touched the new one: turn %s, card %+v", v.Turn, v.Cards[c])
+	}
+}
+
+// tests-duo/duo-play.sh asks for a long hide so both screens can be read
+// while a mismatch is up; the next reset without one is a game people play.
+func TestResetSetsTheHideAndGivesTheDefaultBack(t *testing.T) {
+	d := NewDuo(42)
+	srv := httptest.NewServer(handler(d))
+	defer srv.Close()
+	post := func(q string) int {
+		r, err := http.Post(srv.URL+"/reset?"+q, "", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		r.Body.Close()
+		return r.StatusCode
+	}
+	if c := post("seed=42&hide=3s"); c != 200 || d.hideAfter != 3*time.Second {
+		t.Errorf("hide=3s: status %d, hide %v", c, d.hideAfter)
+	}
+	if c := post("seed=42"); c != 200 || d.hideAfter != defaultHide {
+		t.Errorf("no hide: status %d, hide %v", c, d.hideAfter)
+	}
+	for _, bad := range []string{"3", "-1s", "2m", "soon"} {
+		if c := post("seed=42&hide=" + bad); c != http.StatusBadRequest {
+			t.Errorf("hide=%s: status %d, want 400", bad, c)
+		}
 	}
 }
