@@ -110,7 +110,15 @@ fun DuoScreen(store: Store, player: String, server: String) {
             Text("A: ${view?.scores?.get("A") ?: 0}", Modifier.testTag("scoreA"))
             Text("B: ${view?.scores?.get("B") ?: 0}", Modifier.testTag("scoreB"))
         }
-        Text(message, Modifier.padding(16.dp).testTag("duoMessage"))
+        val over = view?.takeIf { it.over }
+        if (over != null) {
+            // In the message's row, not under the board: on a Quest panel the
+            // board fills the height, and a line below it showed as a sliver.
+            val a = over.scores["A"] ?: 0
+            val b = over.scores["B"] ?: 0
+            Text(if (a == b) "A draw, $a each" else "${if (a > b) "A" else "B"} wins, $a to $b",
+                Modifier.padding(16.dp).testTag("duoOver"), fontWeight = FontWeight.Bold)
+        } else Text(message, Modifier.padding(16.dp).testTag("duoMessage"))
         val v = view ?: return@Column
         Column(Modifier.padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             for (row in 0 until 4) {
@@ -145,12 +153,6 @@ fun DuoScreen(store: Store, player: String, server: String) {
                     }
                 }
             }
-        }
-        if (v.over) {
-            val a = v.scores["A"] ?: 0
-            val b = v.scores["B"] ?: 0
-            Text(if (a == b) "A draw, $a each" else "${if (a > b) "A" else "B"} wins, $a to $b",
-                Modifier.padding(16.dp).testTag("duoOver"), fontWeight = FontWeight.Bold)
         }
     }
 }

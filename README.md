@@ -43,12 +43,14 @@ CHALLENGES 367 and 368).
 | [Full run, MP4](docs/media/quest-game.mp4) | [Full run, MP4](docs/media/quest-sort.mp4) |
 
 **Two players on two devices**: player A on the phone, player B on the
-Quest, one game held by the server. The script reads both screens after
-every move: B's flip on A's turn refused, A's Monarchs kept and A plays
-again, a mismatch turned back on both and the turn handed over, then B's
-Glasswings. Shown at normal speed.
+Quest, one game held by the server, played to the end. The script reads
+both screens after every move: B's flip on A's turn refused, A's Monarchs
+kept and A plays again, a mismatch turned back on both and the turn handed
+over, B's four pairs, B's mismatch handing the turn back, then A's last
+three, and a draw at 4 each on both. Shown at normal speed; a mismatch
+stays up for 3 seconds, as the tests ask.
 
-<img src="docs/media/duo.gif" width="520" alt="The two-player game: an Android phone emulator on the left as player A and the Meta Spatial Simulator on the right as player B, the same board and scores on both after every move">
+<img src="docs/media/duo.gif" width="520" alt="The two-player game played to a draw: an Android phone emulator on the left as player A and the Meta Spatial Simulator on the right as player B, the same board and scores on both after every move, ending with A draw, 4 each on both">
 
 [Full run, MP4](docs/media/duo.mp4)
 
@@ -59,8 +61,8 @@ Where each run ended:
 | <img src="docs/media/phone-game-done.png" width="180" alt="Phone: all 8 pairs found in 8 moves"> | <img src="docs/media/phone-sort-done.png" width="180" alt="Phone: Sorted, Glasswing, Swallowtail, Owl, Atlas in the slots"> | <img src="docs/media/quest-game-done.png" width="210" alt="Quest: all 8 pairs found in 8 moves"> | <img src="docs/media/quest-sort-after.png" width="210" alt="Quest: the slots empty and all four butterflies still in the tray"> |
 
 Recorded on an Android 15 emulator and the Meta Spatial Simulator
-207.0.0.83.331, with Mobium at `c5f0c6f`, by the device's own screen
-recorder.
+207.0.0.83.331, with Mobium at `c5f0c6f` (the two-player game at
+`57195af`), by the device's own screen recorder.
 
 ## Contents
 
