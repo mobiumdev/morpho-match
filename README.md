@@ -114,7 +114,7 @@ Peacock, Atlas and Emerald, each with its color and wingspan.
 android/   the app: Compose, one module (Game.kt: the rules; MainActivity.kt: the screens; Duo.kt: the two-player screen)
 server/    the two-player server, in Go
 tests/     match.test.json, the configs, matrix.sh
-tests-duo/ duo-play.sh and duo-matrix.sh, the two-device scripts
+tests-duo/ duo-play.sh, duo-matrix.sh and duo-outage.sh, the two-device scripts
 docs/media the recordings above
 ```
 
@@ -162,9 +162,20 @@ both scores and whose turn it is. It listens on `127.0.0.1:8787`.
 
 ```sh
 cd server && go test ./... && go run . &              # seed 42, pinned in duo_test.go
-tests-duo/duo-play.sh emulator-5554 emulator-5556     # both screens read at every move
-tests-duo/duo-matrix.sh emulator-5554 emulator-5556   # each server bug alone
+tests-duo/duo-play.sh emulator-5554 emulator-5556     # a game to a draw, both screens read at every move
+tests-duo/duo-matrix.sh emulator-5554 emulator-5556   # each server bug alone, caught where it should be
+tests-duo/duo-outage.sh emulator-5554 emulator-5556   # the server stopped mid-game and started again
 ```
+
+`duo-play.sh` plays seed 42 to the end, a draw at 4 each, and resets the
+game with a mismatch held up for 3 seconds (the game's own is 0.8): read
+one after the other, the Quest missed a pair that was up for 0.8 seconds,
+three runs in three. `duo-matrix.sh` fails unless the game passes with no
+bug on, and each bug fails it at the step that should catch it.
+`duo-outage.sh` runs its own server on port 8788, so it can stop it: both
+devices must say the server did not answer, keep the last board, refuse a
+flip as unanswered, and, once it is back, drop the message and show its new
+game — the game lives in the server's memory, so a restart is a new one.
 
 A `mobium test` file cannot do this, because its steps run in batches on its
 project's device and a step naming another device is refused. So the
@@ -173,7 +184,7 @@ daemon, which holds a session per device.
 
 ## The bug switch
 
-Four bugs in the app, and three in the server, each off by default:
+Four bugs in the app, and four in the server, each off by default:
 
 | Bug | What goes wrong |
 | --- | --- |
@@ -184,6 +195,7 @@ Four bugs in the app, and three in the server, each off by default:
 | `out-of-turn` (server) | a flip is accepted from the player whose turn it is not |
 | `turn-stuck` (server) | a mismatch does not hand the turn over |
 | `score-swap` (server) | player B is sent the two scores swapped |
+| `match-hands-over` (server) | a match hands the turn over instead of keeping it |
 
 ```sh
 MOBIUM=mobium DEVICE=emulator-5554 sh tests/matrix.sh out/   # the suite, then each app bug alone
@@ -213,11 +225,18 @@ corrects that for a slider's fill, which can read the thumb back, but not
 for a plain drag, whose meaning is the app's: a React Native drag on the
 same panel lands exactly (Mobium's CHALLENGES 368).
 
-**Two players**, the phone as A and the Quest as B: the scripted game
-passes, and `duo-matrix.sh` catches **3 of 3** server bugs, each where it
-should: `out-of-turn` (B's flip on A's turn is not refused), `turn-stuck`
-(the phone never shows "Turn: B"), `score-swap` (the Quest does not show
-"A: 1").
+**Two players**, the phone as A and the Quest as B, and again the other
+way round: the scripted game passes to its draw, `duo-outage.sh` passes,
+and `duo-matrix.sh` catches **4 of 4** server bugs, each at the step that
+should: `out-of-turn` at 2 (B's flip on A's turn is not refused),
+`match-hands-over` at 3 (A does not show "Turn: A" after its Monarchs),
+`score-swap` at 3 (B does not show "A: 1"), `turn-stuck` at 4 (A never
+shows "Turn: B").
+
+The outage needs a Mobium that quotes a link for the device's shell
+(mobiumdev/mobium#288, CHALLENGES 369): before it, everything after the link's `&`
+was dropped, so `server=` never arrived and every duo device played on the
+default `:8787` — which is why the scripts on that port passed.
 
 ## Not yet
 

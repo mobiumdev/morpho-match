@@ -72,6 +72,8 @@ private suspend fun call(method: String, url: String): Pair<Int, String> = withC
     }
 }
 
+private const val UNREACHABLE = "The server did not answer"
+
 private val names = SPECIES.associate { it.id to it }
 
 /**
@@ -88,7 +90,13 @@ fun DuoScreen(store: Store, player: String, server: String) {
     LaunchedEffect(player, server) {
         while (true) {
             val (code, body) = call("GET", "$server/state?player=$player")
-            if (code == 200) view = parse(body) else message = "The server did not answer: $body"
+            if (code == 200) {
+                val next = parse(body)
+                // A message is about the board it was given on: a refusal goes
+                // when the board changes, and "did not answer" when it answers.
+                if (next.version != view?.version || message.startsWith(UNREACHABLE)) message = ""
+                view = next
+            } else message = "$UNREACHABLE: $body"
             delay(300)
         }
     }
@@ -125,7 +133,7 @@ fun DuoScreen(store: Store, player: String, server: String) {
                                     val (code, body) = call("POST", "$server/flip?player=$player&card=$i")
                                     message = when (code) {
                                         200 -> ""
-                                        0 -> "The server did not answer: $body"
+                                        0 -> "$UNREACHABLE: $body"
                                         else -> runCatching { JSONObject(body).getString("error") }.getOrDefault(body)
                                     }
                                     if (code == 200) view = parse(body)
