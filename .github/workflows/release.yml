@@ -1,0 +1,78 @@
+# Builds Morpho Match and its two-player server and, on a tag, publishes them
+# as a GitHub release, so a check or a CI job can install the game without
+# building it: `gh release download -R mobiumdev/morpho-match`, or
+# https://github.com/mobiumdev/morpho-match/releases/latest/download/<file>.
+#
+# The file names do not carry the version, so that latest/download URL
+# stays the same from release to release. The APK runs on a phone and on a
+# Meta Quest, and is signed with the runner's debug key: an app under test,
+# never published to a store. The server listens on 127.0.0.1:8787 unless
+# given -addr.
+#
+# A pull request that changes this file builds everything and publishes
+# nothing.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths: ['.github/workflows/release.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleRelease
+        working-directory: android
+      - run: cp android/app/build/outputs/apk/release/app-release.apk MorphoMatch-android.apk
+      - uses: actions/upload-artifact@v5
+        with:
+          name: android
+          path: MorphoMatch-android.apk
+
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: server/go.mod
+      - run: go test ./...
+        working-directory: server
+      - run: |
+          for t in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
+            os=${t%/*}; arch=${t#*/}; ext=; [ "$os" = windows ] && ext=.exe
+            CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -o "../morpho-match-server-$os-$arch$ext" .
+          done
+        working-directory: server
+      - uses: actions/upload-artifact@v5
+        with:
+          name: server
+          path: morpho-match-server-*
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [android, server]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          path: dist
+          merge-multiple: true
+      - run: sha256sum * > SHA256SUMS
+        working-directory: dist
+      - run: gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "Morpho Match $GITHUB_REF_NAME" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
