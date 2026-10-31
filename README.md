@@ -69,6 +69,7 @@ Recorded on an Android 15 emulator and the Meta Spatial Simulator
 - [See it run](#see-it-run)
 - [Why it exists](#why-it-exists)
 - [What is in it](#what-is-in-it)
+- [Install a release](#install-a-release)
 - [Build and install](#build-and-install)
 - [Run the tests](#run-the-tests)
 - [Two players](#two-players)
@@ -119,6 +120,25 @@ tests/     match.test.json, the configs, matrix.sh
 tests-duo/ duo-play.sh, duo-matrix.sh and duo-outage.sh, the two-device scripts
 docs/media the recordings above
 ```
+
+## Install a release
+
+Each tag `v*` publishes the game, `MorphoMatch-android.apk` (a phone or a
+Meta Quest), and the two-player server for Linux, macOS and Windows,
+`morpho-match-server-<os>-<arch>`, with `SHA256SUMS`, made by
+`.github/workflows/release.yml` under names that stay the same from release
+to release.
+
+```sh
+gh release download -R mobiumdev/morpho-match -p MorphoMatch-android.apk
+adb install -r MorphoMatch-android.apk
+
+gh release download -R mobiumdev/morpho-match -p morpho-match-server-darwin-arm64
+chmod +x morpho-match-server-darwin-arm64 && ./morpho-match-server-darwin-arm64 -seed 42
+```
+
+The APK is signed with the build machine's debug key, so uninstall one you
+built yourself before installing a release over it.
 
 ## Build and install
 
